@@ -1,4 +1,5 @@
 # AffinityCTF2019-Quals writeup
+# Prepared by e.g. team
 
 ## 1. BreakingBad (crypto, 150)
 
