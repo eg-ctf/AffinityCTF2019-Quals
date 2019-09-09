@@ -303,6 +303,7 @@ c0:00:00:00:00:00:00:00:00:01
 02:e0:00:00:f9:02:00:00:0d:00
 ```
 Then I used commands from the aforementioned writeup, and modified them a bit:
+
 Parse strings:
 ```
 $ awk -F: '{x=$3$4;y=$5$6}{z=$7}$1=="02"{print x,y,z}' extracted_2.txt > hex_movements.txt
