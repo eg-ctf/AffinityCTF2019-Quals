@@ -199,7 +199,9 @@ If we look at Leftover Capture Data for packets with source 1.4.1, we will see t
 ![drugstore_2.png](files/drugstore_2.png)
 
 Here: https://www.rootusers.com/google-ctf-2016-forensic-for2-write-up/ I found that this 4-byte code represents mouse movements (2nd byte - X, 3rd byte - Y) in hex values. Looks like the flag can be there!
+
 Filter needed packets in Wireshark: ```usb.src == "1.4.1"```
+
 Extract needed data using ```tshark```:
 ```
 $ tshark -r filtered_1.pcapng -T fields -e usb.capdata -Y usb.capdata > extracted_1.txt
@@ -329,6 +331,5 @@ gnuplot> plot "movements_2.txt"
 The image was mirrored, after mirroring it back finally I got the flag:
 
 ![drugstore_4.png](files/drugstore_4.png)
-
 
 ```AFFCTF{uSb_1s_e4Sy_t0_l1St3n_!}```
