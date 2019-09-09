@@ -100,7 +100,7 @@ where
 
 ```[raw audio samples] = [LRLRLRLRLRLR...]```.
 
-L and R are numbers for left and right channel.
+L and R are numbers for left and right channels respectively.
 
 Let's write python script to extract the samples:
 
