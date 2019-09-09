@@ -169,7 +169,7 @@ Yeah!! Pretty easy. The flag is: ```AFFCTF{s3lf_sign3d_is_good_3nough}```
 
 Our malware intercepted traffic from one of drugstore computers. Can you find prescription?
 
-![drugstore.pcap](files/drugstore.pcap)
+![drugstore.pcapng.gz](files/drugstore.pcapng.gz)
 
 ### Solution:
 
@@ -178,8 +178,156 @@ Let's open the file in Wireshark:
 ![drugstore_1.png](/files/drugstore_1.png)
 
 We see some unusual traffic here... some URB_BULK in, URB_BULK out, URB_INTERRUPT... wtf?
-After some googling I found that it is an intercepted USB traffic from multiple usb devices...
+After some googling I found that it is an intercepted USB traffic (as said in "Protocol" column) from multiple usb devices.
+"host" is a computer to which all these devices were plugged in and the different sources stand for the different devices. We can simply filter the packets with source "host", because they only represent a response and have no useful information.
+Packet length is different for every device => we need to find, which device produces the traffic with potential flag
+We can distinguish the following "addresses":
+```
+source		percent of all packages
+1.3.1		(0.1%)
+1.4.1		(3.0%)
+1.5.1		(56.1%)
+1.6.4		(0.1%)
+1.6.5		(6.3%)
+1.11.0		(0.2%)
+1.11.1		(25.4%)
+1.11.2		(2.0%)
+```
+
+If we look at Leftover Capture Data for packets with source 1.4.1, we will see the following:
+
+![drugstore_2.png](files/drugstore_2.png)
+
+Here: https://www.rootusers.com/google-ctf-2016-forensic-for2-write-up/ I found that this 4-byte code represents mouse movements (2nd byte - X, 3rd byte - Y) in hex values. Looks like the flag can be there!
+Filter needed packets in Wireshark: ```usb.src == "1.4.1"```
+Extract needed data using ```tshark```:
+```
+$ tshark -r filtered_1.pcapng -T fields -e usb.capdata -Y usb.capdata > extracted_1.txt
+$ tail -n 10 extracted_1.txt 
+00:fd:01:00
+00:fd:00:00
+00:fd:01:00
+00:fc:00:00
+00:fc:00:00
+00:fc:01:00
+00:fb:01:00
+00:fb:00:00
+00:fd:01:00
+00:fc:00:00
+```
+Parse values to get integer X and Y movements:
+```
+contents = open('extracted_1.txt', 'r').readlines()
+contents_2 = []
+for item in contents:
+	contents_2.append( [item[3:5], item[6:8]] )
+
+def parse_move(value):
+	if int(value, 16) > 127:
+		return int(value, 16) - 256
+	else:
+		return int(value, 16)
+
+x,y = 0, 0 # mouse position default values
+
+with open('movements_1.txt', 'w') as file:
+	for item in contents_2:
+		x += parse_move(item[0])
+		y += parse_move(item[1])
+		file.write(str(x) + ' ' + str(y) + '\n')
+```
+Last 10 lines of movements_1.txt:
+```
+$ tail -n 10 movements_1.txt 
+-818 -533
+-819 -533
+-819 -532
+-820 -532
+-821 -532
+-821 -531
+-822 -531
+-823 -531
+-823 -531
+-823 -531
+```
+Plot these values:
+```
+$ gnuplot
+gnuplot> plot "movements_1.txt"
+```
+
+![movements_1.png](files/movements_1.png)
+
+Well, nothing interesting...
+
+What about source 1.5.1, the majority of the packets in the given file?
+
+Filter: ```usb.src = "1.5.1"```
+
+![drugstore_3.png](files/drugstore_3.png)
+
+I found this very useful writeup: https://blogs.tunelko.com/2017/02/05/bitsctf-tom-and-jerry-50-points/
+This situation is a bit different, but looks very similar. 
+We have 10 bytes data: ```02 e1 41 20 71 0c 7f 06 1a 00```, which can be interpreted as:
+```
+02 e1 - header
+41 20 - X
+71 0c - Y
+7f 06 - pressure
+1a 00 - suffix
+```
+Obviously we are dealing with some kind of drawing tablet.
+Extract data from intercepted traffic:
+```
+$ tshark -r filtered_2.pcapng -T fields -e usb.capdata -Y usb.capdata > extracted_2.txt
+$ head -n 20 extracted_2.txt 
+c0:00:00:00:00:00:00:00:00:01
+c0:00:00:00:00:00:00:00:00:01
+02:80:00:00:00:00:00:00:00:00
+02:80:00:00:00:00:00:00:00:00
+02:80:00:00:00:00:00:00:00:00
+02:80:00:00:00:00:00:00:00:00
+02:80:00:00:00:00:00:00:00:00
+02:80:00:00:00:00:00:00:00:00
+02:80:00:00:00:00:00:00:00:00
+02:80:00:00:00:00:00:00:00:00
+02:c0:00:00:dc:02:00:00:0c:00
+02:e0:00:00:e4:02:00:00:0c:00
+02:e0:00:00:f9:02:00:00:0d:00
+02:e0:00:00:f1:02:00:00:0d:00
+02:e0:00:00:fa:02:00:00:0d:00
+02:e0:00:00:f9:02:00:00:0d:00
+02:e0:00:00:f9:02:00:00:0d:00
+02:e0:00:00:fe:02:00:00:0d:00
+02:e0:00:00:fd:02:00:00:0d:00
+02:e0:00:00:f9:02:00:00:0d:00
+```
+Then I used commands from the aforementioned writeup, and modified them a bit:
+Parse strings:
+```
+$ awk -F: '{x=$3$4;y=$5$6}{z=$7}$1=="02"{print x,y,z}' extracted_2.txt > hex_movements.txt
+```
+Parse hex movements (```solve.py```):
+```
+from pwn import *
+for i in open('hex_movements.txt').readlines():
+    ii = i.strip().split(' ')
+    x = int(ii[0], 16)
+    y = int(ii[1], 16)
+    z = int(ii[2], 16)
+    if z > 0:
+	print u16(struct.pack(">H", x)), u16(struct.pack(">H", y))
+```
+
+Final steps:
+```
+$ python solve.py > movements_2.txt
+$ gnuplot
+gnuplot> plot "movements_2.txt"
+```
+The image was mirrored, after mirroring it back finally I got the flag:
+
+![drugstore_4.png](files/drugstore_4.png)
 
 
-TO BE CONTINUED
-
+```AFFCTF{uSb_1s_e4Sy_t0_l1St3n_!}```
