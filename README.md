@@ -183,7 +183,7 @@ After some googling I found that it is an intercepted USB traffic (as said in "P
 Packet length is different for every device => we need to find, which device produces the traffic with potential flag
 We can distinguish the following "addresses":
 ```
-source		percent of all packages
+source		percent of all packets
 1.3.1		(0.1%)
 1.4.1		(3.0%)
 1.5.1		(56.1%)
