@@ -91,8 +91,8 @@ Nothing interesting in Audacity:
 ![xy_audacity.png](files/xy_audacity.png)
 
 But the task name sounds like xy_fun... function... y(x)..
-Ok, what if we try to plot the image considering audio samples as coordinates?
-WAV is an uncompressed format, so the audio samples performed simply as numbers:
+Ok, what if we try to plot an image considering audio samples as coordinates?
+WAV is an uncompressed format, so audio samples performed simply as numbers:
 
 ```wav file = [44 byte wav header][raw audio samples...]```
 
@@ -100,9 +100,9 @@ where
 
 ```[raw audio samples] = [LRLRLRLRLRLR...]```.
 
-L and R are numbers for left and right channels respectively.
+L and R are numbers for the left and right channels respectively.
 
-Let's write python script to extract the samples:
+Let's write a python script to extract the samples:
 
 ```
 import struct
